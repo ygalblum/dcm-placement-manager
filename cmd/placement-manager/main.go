@@ -11,6 +11,7 @@ import (
 	"github.com/dcm-project/placement-manager/internal/apiserver"
 	"github.com/dcm-project/placement-manager/internal/config"
 	"github.com/dcm-project/placement-manager/internal/handlers"
+	"github.com/dcm-project/placement-manager/internal/store"
 )
 
 func main() {
@@ -19,6 +20,16 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}
+
+	// Initialize database
+	db, err := store.InitDB(cfg)
+	if err != nil {
+		log.Fatalf("Failed to initialize database: %v", err)
+	}
+
+	// Initialize store
+	dataStore := store.NewStore(db)
+	defer dataStore.Close()
 
 	// Create TCP listener
 	listener, err := net.Listen("tcp", cfg.Service.Address)

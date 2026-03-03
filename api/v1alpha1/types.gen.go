@@ -74,8 +74,8 @@ type ResourceIdPath = string
 
 // ListResourcesParams defines parameters for ListResources.
 type ListResourcesParams struct {
-	// Type Filter service type
-	Type *string `form:"type,omitempty" json:"type,omitempty"`
+	// Provider Filter provider name
+	Provider *string `form:"provider,omitempty" json:"provider,omitempty"`
 
 	// MaxPageSize Maximum number of results per page
 	MaxPageSize *int `form:"max_page_size,omitempty" json:"max_page_size,omitempty"`

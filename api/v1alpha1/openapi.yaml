@@ -44,9 +44,9 @@ paths:
       operationId: listResources
       description: Returns a list of resources with optional filtering
       parameters:
-        - name: type
+        - name: provider
           in: query
-          description: Filter service type
+          description: Filter provider name
           schema:
             type: string
         - name: max_page_size

@@ -82,8 +82,8 @@ type ResourceIdPath = string
 
 // ListResourcesParams defines parameters for ListResources.
 type ListResourcesParams struct {
-	// Type Filter service type
-	Type *string `form:"type,omitempty" json:"type,omitempty"`
+	// Provider Filter provider name
+	Provider *string `form:"provider,omitempty" json:"provider,omitempty"`
 
 	// MaxPageSize Maximum number of results per page
 	MaxPageSize *int `form:"max_page_size,omitempty" json:"max_page_size,omitempty"`
@@ -185,11 +185,11 @@ func (siw *ServerInterfaceWrapper) ListResources(w http.ResponseWriter, r *http.
 	// Parameter object where we will unmarshal all parameters from the context
 	var params ListResourcesParams
 
-	// ------------- Optional query parameter "type" -------------
+	// ------------- Optional query parameter "provider" -------------
 
-	err = runtime.BindQueryParameter("form", true, false, "type", r.URL.Query(), &params.Type)
+	err = runtime.BindQueryParameter("form", true, false, "provider", r.URL.Query(), &params.Provider)
 	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "type", Err: err})
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "provider", Err: err})
 		return
 	}
 

@@ -229,9 +229,9 @@ func NewListResourcesRequest(server string, params *ListResourcesParams) (*http.
 	if params != nil {
 		queryValues := queryURL.Query()
 
-		if params.Type != nil {
+		if params.Provider != nil {
 
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "type", runtime.ParamLocationQuery, *params.Type); err != nil {
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "provider", runtime.ParamLocationQuery, *params.Provider); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
