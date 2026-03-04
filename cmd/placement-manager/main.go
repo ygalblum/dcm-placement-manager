@@ -11,6 +11,7 @@ import (
 	"github.com/dcm-project/placement-manager/internal/apiserver"
 	"github.com/dcm-project/placement-manager/internal/config"
 	"github.com/dcm-project/placement-manager/internal/handlers"
+	"github.com/dcm-project/placement-manager/internal/service"
 	"github.com/dcm-project/placement-manager/internal/store"
 )
 
