@@ -18,12 +18,12 @@ type ServiceConfig struct {
 
 // DBConfig holds database configuration
 type DBConfig struct {
-	Type     string `envconfig:"DB_TYPE" default:"sqlite"`
+	Type     string `envconfig:"DB_TYPE" default:"pgsql"`
 	Hostname string `envconfig:"DB_HOST" default:"localhost"`
 	Port     string `envconfig:"DB_PORT" default:"5432"`
 	Name     string `envconfig:"DB_NAME" default:"placement-manager"`
 	User     string `envconfig:"DB_USER"`
-	Password string `envconfig:"DB_PASS"`
+	Password string `envconfig:"DB_PASSWORD"`
 }
 
 // Load reads configuration from environment variables
