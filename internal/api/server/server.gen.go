@@ -44,6 +44,9 @@ type Health struct {
 
 // Resource Full resource representation
 type Resource struct {
+	// ApprovalStatus The approval status after the spec is validated by Policy Engine.
+	ApprovalStatus *string `json:"approval_status,omitempty"`
+
 	// CatalogItemInstanceId The unique identifier of the catalog item instance
 	CatalogItemInstanceId string `json:"catalog_item_instance_id"`
 
@@ -59,15 +62,18 @@ type Resource struct {
 	// ProviderName Name of the Service Provider
 	ProviderName *string `json:"provider_name,omitempty"`
 
-	// ResourceName Name of the resource
-	ResourceName *string `json:"resource_name,omitempty"`
-
 	// Spec Service specification following one of the supported service type
 	// schemas (VMSpec, ContainerSpec, DatabaseSpec, or ClusterSpec).
 	Spec map[string]interface{} `json:"spec"`
 
 	// UpdateTime Timestamp when the resource was last updated
 	UpdateTime *time.Time `json:"update_time,omitempty"`
+
+	// ValidSpec Service specification following one of the supported service type
+	// schemas (VMSpec, ContainerSpec, DatabaseSpec, or ClusterSpec).
+	// This Spec has been validated and possibly mutated by DCM Policy Engine.
+	// Hence its value may differ from the spec field (original intention of the user).
+	ValidSpec *map[string]interface{} `json:"valid_spec,omitempty"`
 }
 
 // ResourceList Paginated list of resources

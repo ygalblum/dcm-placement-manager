@@ -249,14 +249,10 @@ components:
           readOnly: true
           description: Name of the Service Provider
           example: "kubevirt-123"
-        resource_name:
-          type: string
-          readOnly: true
-          description: Name of the resource
-          example: "fedora-vm"
         catalog_item_instance_id:
           type: string
           description: The unique identifier of the catalog item instance
+          minLength: 1
           example: "696511df-1fcb-4f66-8ad5-aeb828f383a0"
         spec:
           type: object
@@ -264,6 +260,19 @@ components:
             Service specification following one of the supported service type
             schemas (VMSpec, ContainerSpec, DatabaseSpec, or ClusterSpec).
           additionalProperties: true
+          minProperties: 1
+        valid_spec:
+          type: object
+          readOnly: true
+          description: |
+            Service specification following one of the supported service type
+            schemas (VMSpec, ContainerSpec, DatabaseSpec, or ClusterSpec).
+            This Spec has been validated and possibly mutated by DCM Policy Engine.
+            Hence its value may differ from the spec field (original intention of the user).
+        approval_status:
+          type: string
+          readOnly: true
+          description: The approval status after the spec is validated by Policy Engine.
         create_time:
           type: string
           format: date-time
