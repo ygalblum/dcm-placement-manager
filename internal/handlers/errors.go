@@ -44,7 +44,7 @@ func handleCreateResourceError(err error) server.CreateResourceResponseObject {
 			return server.CreateResource409ApplicationProblemPlusJSONResponse(newError("policy-conflict", "Policy conflict", svcErr.Message, 409))
 		case service.ErrCodeProviderError:
 			return server.CreateResource422ApplicationProblemPlusJSONResponse(newError("provider-error", "Provider error", svcErr.Message, 422))
-		case service.ErrCodeInternal, service.ErrCodePolicyError:
+		case service.ErrCodeInternal, service.ErrCodePolicyError, service.ErrCodeSPRMError:
 			return server.CreateResourcedefaultApplicationProblemPlusJSONResponse{
 				Body:       newError("internal-error", "Internal error", svcErr.Message, 500),
 				StatusCode: 500,

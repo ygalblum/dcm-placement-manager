@@ -7,6 +7,7 @@ import (
 	"github.com/dcm-project/placement-manager/internal/api/server"
 	"github.com/dcm-project/placement-manager/internal/policy"
 	"github.com/dcm-project/placement-manager/internal/service"
+	"github.com/dcm-project/placement-manager/internal/sprm"
 	"github.com/dcm-project/placement-manager/internal/store"
 	"github.com/dcm-project/placement-manager/internal/store/model"
 	. "github.com/onsi/ginkgo/v2"
@@ -34,11 +35,39 @@ func (m *mockPolicyClient) Evaluate(ctx context.Context, req policy.EvaluateRequ
 	}, nil
 }
 
+// mockSPRMClient is a mock implementation of sprm.Client for testing
+type mockSPRMClient struct {
+	CreateResourceFunc func(ctx context.Context, req sprm.CreateResourceRequest) (*sprm.CreateResourceResponse, error)
+	DeleteResourceFunc func(ctx context.Context, catalogItemInstanceId string) error
+}
+
+// CreateResource calls the mock function if set, otherwise returns a default success response
+func (m *mockSPRMClient) CreateResource(ctx context.Context, req sprm.CreateResourceRequest) (*sprm.CreateResourceResponse, error) {
+	if m.CreateResourceFunc != nil {
+		return m.CreateResourceFunc(ctx, req)
+	}
+	// Default: successful creation
+	return &sprm.CreateResourceResponse{
+		ID:     req.CatalogItemInstanceId,
+		Status: "provisioning",
+	}, nil
+}
+
+// DeleteResource calls the mock function if set, otherwise returns success
+func (m *mockSPRMClient) DeleteResource(ctx context.Context, catalogItemInstanceId string) error {
+	if m.DeleteResourceFunc != nil {
+		return m.DeleteResourceFunc(ctx, catalogItemInstanceId)
+	}
+	// Default: successful deletion
+	return nil
+}
+
 var _ = Describe("PlacementService", func() {
 	var (
 		db           *gorm.DB
 		dataStore    store.Store
 		mockPolicy   *mockPolicyClient
+		mockSPRM     *mockSPRMClient
 		placementSvc *service.PlacementService
 		ctx          context.Context
 	)
@@ -53,7 +82,8 @@ var _ = Describe("PlacementService", func() {
 
 		dataStore = store.NewStore(db)
 		mockPolicy = &mockPolicyClient{}
-		placementSvc = service.NewPlacementService(dataStore, mockPolicy)
+		mockSPRM = &mockSPRMClient{}
+		placementSvc = service.NewPlacementService(dataStore, mockPolicy, mockSPRM)
 		ctx = context.Background()
 	})
 
@@ -237,6 +267,81 @@ var _ = Describe("PlacementService", func() {
 			Expect(svcErr.Code).To(Equal(service.ErrCodeConflict))
 			Expect(svcErr.Message).To(ContainSubstring("already exists"))
 		})
+
+		It("returns error and rolls back DB when SPRM creation fails (400)", func() {
+			mockSPRM.CreateResourceFunc = func(ctx context.Context, req sprm.CreateResourceRequest) (*sprm.CreateResourceResponse, error) {
+				return nil, &sprm.HTTPError{StatusCode: 400, Body: "invalid request"}
+			}
+
+			resource := &server.Resource{
+				CatalogItemInstanceId: "catalog-sprm-400",
+				Spec:                  map[string]any{"cpu": 2},
+			}
+
+			result, err := placementSvc.CreateResource(ctx, resource, nil)
+
+			Expect(err).To(HaveOccurred())
+			Expect(result).To(BeNil())
+			var svcErr *service.ServiceError
+			Expect(err).To(BeAssignableToTypeOf(svcErr))
+			svcErr = err.(*service.ServiceError)
+			Expect(svcErr.Code).To(Equal(service.ErrCodeValidation))
+
+			// Verify resource was NOT persisted in DB (rollback worked)
+			resources, err := dataStore.Resource().List(ctx, &store.ResourceListOptions{})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(resources.Resources).To(BeEmpty())
+		})
+
+		It("returns error and rolls back DB when SPRM creation fails (500)", func() {
+			mockSPRM.CreateResourceFunc = func(ctx context.Context, req sprm.CreateResourceRequest) (*sprm.CreateResourceResponse, error) {
+				return nil, &sprm.HTTPError{StatusCode: 500, Body: "internal error"}
+			}
+
+			resource := &server.Resource{
+				CatalogItemInstanceId: "catalog-sprm-500",
+				Spec:                  map[string]any{"cpu": 2},
+			}
+
+			result, err := placementSvc.CreateResource(ctx, resource, nil)
+
+			Expect(err).To(HaveOccurred())
+			Expect(result).To(BeNil())
+			var svcErr *service.ServiceError
+			Expect(err).To(BeAssignableToTypeOf(svcErr))
+			svcErr = err.(*service.ServiceError)
+			Expect(svcErr.Code).To(Equal(service.ErrCodeSPRMError))
+
+			// Verify resource was NOT persisted in DB (rollback worked)
+			resources, err := dataStore.Resource().List(ctx, &store.ResourceListOptions{})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(resources.Resources).To(BeEmpty())
+		})
+
+		It("returns provider error when SPRM creation fails (422)", func() {
+			mockSPRM.CreateResourceFunc = func(ctx context.Context, req sprm.CreateResourceRequest) (*sprm.CreateResourceResponse, error) {
+				return nil, &sprm.HTTPError{StatusCode: 422, Body: "provider validation failed"}
+			}
+
+			resource := &server.Resource{
+				CatalogItemInstanceId: "catalog-sprm-422",
+				Spec:                  map[string]any{"cpu": 2},
+			}
+
+			result, err := placementSvc.CreateResource(ctx, resource, nil)
+
+			Expect(err).To(HaveOccurred())
+			Expect(result).To(BeNil())
+			var svcErr *service.ServiceError
+			Expect(err).To(BeAssignableToTypeOf(svcErr))
+			svcErr = err.(*service.ServiceError)
+			Expect(svcErr.Code).To(Equal(service.ErrCodeProviderError))
+
+			// Verify resource was NOT persisted in DB (rollback worked)
+			resources, err := dataStore.Resource().List(ctx, &store.ResourceListOptions{})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(resources.Resources).To(BeEmpty())
+		})
 	})
 
 	Describe("GetResource", func() {
@@ -400,6 +505,64 @@ var _ = Describe("PlacementService", func() {
 			Expect(err).To(BeAssignableToTypeOf(svcErr))
 			svcErr = err.(*service.ServiceError)
 			Expect(svcErr.Code).To(Equal(service.ErrCodeNotFound))
+		})
+
+		It("returns error when SPRM deletion fails (404)", func() {
+			// Create a resource first
+			resource := &server.Resource{
+				CatalogItemInstanceId: "catalog-sprm-404",
+				Spec:                  map[string]any{"cpu": 2},
+			}
+			created, err := placementSvc.CreateResource(ctx, resource, nil)
+			Expect(err).NotTo(HaveOccurred())
+
+			// Mock SPRM delete to fail with 404
+			mockSPRM.DeleteResourceFunc = func(ctx context.Context, catalogItemInstanceId string) error {
+				return &sprm.HTTPError{StatusCode: 404, Body: "not found in SPRM"}
+			}
+
+			// Try to delete the resource
+			err = placementSvc.DeleteResource(ctx, *created.Id)
+
+			Expect(err).To(HaveOccurred())
+			var svcErr *service.ServiceError
+			Expect(err).To(BeAssignableToTypeOf(svcErr))
+			svcErr = err.(*service.ServiceError)
+			Expect(svcErr.Code).To(Equal(service.ErrCodeNotFound))
+
+			// Verify resource still exists in DB (SPRM delete failed, so DB delete didn't happen)
+			result, err := placementSvc.GetResource(ctx, *created.Id)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result).NotTo(BeNil())
+		})
+
+		It("returns error when SPRM deletion fails (500)", func() {
+			// Create a resource first
+			resource := &server.Resource{
+				CatalogItemInstanceId: "catalog-sprm-500",
+				Spec:                  map[string]any{"cpu": 2},
+			}
+			created, err := placementSvc.CreateResource(ctx, resource, nil)
+			Expect(err).NotTo(HaveOccurred())
+
+			// Mock SPRM delete to fail with 500
+			mockSPRM.DeleteResourceFunc = func(ctx context.Context, catalogItemInstanceId string) error {
+				return &sprm.HTTPError{StatusCode: 500, Body: "internal error"}
+			}
+
+			// Try to delete the resource
+			err = placementSvc.DeleteResource(ctx, *created.Id)
+
+			Expect(err).To(HaveOccurred())
+			var svcErr *service.ServiceError
+			Expect(err).To(BeAssignableToTypeOf(svcErr))
+			svcErr = err.(*service.ServiceError)
+			Expect(svcErr.Code).To(Equal(service.ErrCodeSPRMError))
+
+			// Verify resource still exists in DB (SPRM delete failed, so DB delete didn't happen)
+			result, err := placementSvc.GetResource(ctx, *created.Id)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result).NotTo(BeNil())
 		})
 	})
 })

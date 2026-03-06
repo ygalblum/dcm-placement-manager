@@ -7,6 +7,7 @@ import (
 	"github.com/dcm-project/placement-manager/internal/handlers"
 	"github.com/dcm-project/placement-manager/internal/policy"
 	"github.com/dcm-project/placement-manager/internal/service"
+	"github.com/dcm-project/placement-manager/internal/sprm"
 	"github.com/dcm-project/placement-manager/internal/store"
 	"github.com/dcm-project/placement-manager/internal/store/model"
 	"github.com/google/uuid"
@@ -35,12 +36,40 @@ func (m *mockPolicyClient) Evaluate(ctx context.Context, req policy.EvaluateRequ
 	}, nil
 }
 
+// mockSPRMClient is a mock implementation of sprm.Client for testing
+type mockSPRMClient struct {
+	CreateResourceFunc func(ctx context.Context, req sprm.CreateResourceRequest) (*sprm.CreateResourceResponse, error)
+	DeleteResourceFunc func(ctx context.Context, catalogItemInstanceId string) error
+}
+
+// CreateResource calls the mock function if set, otherwise returns a default success response
+func (m *mockSPRMClient) CreateResource(ctx context.Context, req sprm.CreateResourceRequest) (*sprm.CreateResourceResponse, error) {
+	if m.CreateResourceFunc != nil {
+		return m.CreateResourceFunc(ctx, req)
+	}
+	// Default: successful creation
+	return &sprm.CreateResourceResponse{
+		ID:     req.CatalogItemInstanceId,
+		Status: "pending",
+	}, nil
+}
+
+// DeleteResource calls the mock function if set, otherwise returns success
+func (m *mockSPRMClient) DeleteResource(ctx context.Context, catalogItemInstanceId string) error {
+	if m.DeleteResourceFunc != nil {
+		return m.DeleteResourceFunc(ctx, catalogItemInstanceId)
+	}
+	// Default: successful deletion
+	return nil
+}
+
 var _ = Describe("Handler", func() {
 	var (
 		db         *gorm.DB
 		handler    *handlers.Handler
 		ctx        context.Context
 		mockPolicy *mockPolicyClient
+		mockSPRM   *mockSPRMClient
 	)
 
 	BeforeEach(func() {
@@ -53,7 +82,8 @@ var _ = Describe("Handler", func() {
 
 		dataStore := store.NewStore(db)
 		mockPolicy = &mockPolicyClient{}
-		placementService := service.NewPlacementService(dataStore, mockPolicy)
+		mockSPRM = &mockSPRMClient{}
+		placementService := service.NewPlacementService(dataStore, mockPolicy, mockSPRM)
 		handler = handlers.NewHandler(placementService)
 		ctx = context.Background()
 	})
