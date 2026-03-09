@@ -60,8 +60,6 @@ func (s *PlacementService) CreateResource(ctx context.Context, req *server.Resou
 
 	// Convert API resource to store model
 	requestModel := resourceToStoreModel(req, resourceIDStr, path)
-	requestModel.ProviderName = &providerName
-	requestModel.ApprovalStatus = &approvalStatus
 
 	// Create resource in store
 	created, err := s.store.Resource().Create(ctx, requestModel)
