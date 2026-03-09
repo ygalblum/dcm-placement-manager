@@ -50,13 +50,18 @@ func (s *PlacementService) CreateResource(ctx context.Context, req *server.Resou
 		return nil, handlePolicyError(err)
 	}
 
-	// Update request with status and selected provider
-	req.ApprovalStatus = &policyResponse.Status
+	// Extract approvalStatus and providerName from policy response
+	approvalStatus := policyResponse.Status
 	providerName := policyResponse.SelectedProvider
+
+	// Update request with status and selected provider
+	req.ApprovalStatus = &approvalStatus
+	req.ProviderName = &providerName
 
 	// Convert API resource to store model
 	requestModel := resourceToStoreModel(req, resourceIDStr, path)
 	requestModel.ProviderName = &providerName
+	requestModel.ApprovalStatus = &approvalStatus
 
 	// Create resource in store
 	created, err := s.store.Resource().Create(ctx, requestModel)

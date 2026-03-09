@@ -9,8 +9,8 @@ type Resource struct {
 	ID                    string         `gorm:"primaryKey;type:varchar(63)"`
 	CatalogItemInstanceId string         `gorm:"column:catalog_item_instance_id;not null"`
 	Spec                  map[string]any `gorm:"column:original_spec;type:jsonb;serializer:json;not null"`
-	ProviderName          *string        `gorm:"column:provider_name"`
-	ApprovalStatus        *string        `gorm:"column:approval_status"`
+	ProviderName          *string        `gorm:"column:provider_name;not null"`
+	ApprovalStatus        *string        `gorm:"column:approval_status;not null"`
 	Path                  string         `gorm:"column:path;not null"`
 	CreateTime            time.Time      `gorm:"column:create_time;autoCreateTime"`
 	UpdateTime            time.Time      `gorm:"column:update_time;autoUpdateTime"`
