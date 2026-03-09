@@ -40,10 +40,15 @@ var _ = Describe("Resource Store", func() {
 
 	Describe("Create", func() {
 		It("persists the resource without optional fields", func() {
+			provider := "test-provider"
+			approval := "APPROVED"
 			r := model.Resource{
 				ID:                    uuid.New().String(),
 				CatalogItemInstanceId: "catalog-instance-123",
 				Spec:                  map[string]any{"cpu": "2", "memory": "4Gi"},
+				ProviderName:          &provider,
+				ApprovalStatus:        &approval,
+				Path:                  "resources/" + uuid.New().String(),
 			}
 			created, err := requestStore.Create(ctx, r)
 
@@ -51,16 +56,23 @@ var _ = Describe("Resource Store", func() {
 			Expect(created.ID).To(Equal(r.ID))
 			Expect(created.CatalogItemInstanceId).To(Equal("catalog-instance-123"))
 			Expect(created.Spec).To(Equal(map[string]any{"cpu": "2", "memory": "4Gi"}))
-			Expect(created.ProviderName).To(BeNil())
-			Expect(created.ApprovalStatus).To(BeNil())
+			Expect(created.ProviderName).NotTo(BeNil())
+			Expect(*created.ProviderName).To(Equal("test-provider"))
+			Expect(created.ApprovalStatus).NotTo(BeNil())
+			Expect(*created.ApprovalStatus).To(Equal("APPROVED"))
 		})
 
 		It("returns error for duplicate ID", func() {
 			id := uuid.New().String()
+			provider := "test-provider"
+			approval := "APPROVED"
 			r1 := model.Resource{
 				ID:                    id,
 				CatalogItemInstanceId: "catalog-instance-123",
 				Spec:                  map[string]any{"cpu": "2"},
+				ProviderName:          &provider,
+				ApprovalStatus:        &approval,
+				Path:                  "resources/" + id,
 			}
 			_, err := requestStore.Create(ctx, r1)
 			Expect(err).NotTo(HaveOccurred())
@@ -70,6 +82,9 @@ var _ = Describe("Resource Store", func() {
 				ID:                    id,
 				CatalogItemInstanceId: "catalog-instance-456",
 				Spec:                  map[string]any{"cpu": "4"},
+				ProviderName:          &provider,
+				ApprovalStatus:        &approval,
+				Path:                  "resources/" + id,
 			}
 			_, err = requestStore.Create(ctx, r2)
 
@@ -79,10 +94,15 @@ var _ = Describe("Resource Store", func() {
 
 	Describe("Get", func() {
 		It("retrieves by ID", func() {
+			provider := "test-provider"
+			approval := "APPROVED"
 			r := model.Resource{
 				ID:                    uuid.New().String(),
 				CatalogItemInstanceId: "catalog-instance-456",
 				Spec:                  map[string]any{"test": "data"},
+				ProviderName:          &provider,
+				ApprovalStatus:        &approval,
+				Path:                  "resources/" + uuid.New().String(),
 			}
 			_, _ = requestStore.Create(ctx, r)
 
@@ -103,11 +123,12 @@ var _ = Describe("Resource Store", func() {
 		BeforeEach(func() {
 			provider1 := "provider-a"
 			provider2 := "provider-b"
+			approval := "APPROVED"
 			// Create test data
 			requests := []model.Resource{
-				{ID: uuid.New().String(), ProviderName: &provider1, CatalogItemInstanceId: "cat-1", Spec: map[string]any{}},
-				{ID: uuid.New().String(), ProviderName: &provider2, CatalogItemInstanceId: "cat-2", Spec: map[string]any{}},
-				{ID: uuid.New().String(), ProviderName: &provider1, CatalogItemInstanceId: "cat-3", Spec: map[string]any{}},
+				{ID: uuid.New().String(), ProviderName: &provider1, ApprovalStatus: &approval, CatalogItemInstanceId: "cat-1", Spec: map[string]any{}, Path: "resources/1"},
+				{ID: uuid.New().String(), ProviderName: &provider2, ApprovalStatus: &approval, CatalogItemInstanceId: "cat-2", Spec: map[string]any{}, Path: "resources/2"},
+				{ID: uuid.New().String(), ProviderName: &provider1, ApprovalStatus: &approval, CatalogItemInstanceId: "cat-3", Spec: map[string]any{}, Path: "resources/3"},
 			}
 			for _, r := range requests {
 				_, err := requestStore.Create(ctx, r)
@@ -212,10 +233,15 @@ var _ = Describe("Resource Store", func() {
 
 	Describe("Delete", func() {
 		It("deletes the resource", func() {
+			provider := "test-provider"
+			approval := "APPROVED"
 			r := model.Resource{
 				ID:                    uuid.New().String(),
 				CatalogItemInstanceId: "cat-del",
 				Spec:                  map[string]any{},
+				ProviderName:          &provider,
+				ApprovalStatus:        &approval,
+				Path:                  "resources/del",
 			}
 			_, _ = requestStore.Create(ctx, r)
 

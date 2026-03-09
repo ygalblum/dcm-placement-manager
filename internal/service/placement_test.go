@@ -119,6 +119,15 @@ var _ = Describe("PlacementService", func() {
 			Expect(*result.ApprovalStatus).To(Equal("APPROVED"))
 			Expect(result.ProviderName).NotTo(BeNil())
 			Expect(*result.ProviderName).To(Equal("test-provider"))
+
+			// Verify the resource is persisted in the database with correct fields
+			retrieved, err := placementSvc.GetResource(ctx, *result.Id)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(retrieved).NotTo(BeNil())
+			Expect(retrieved.ApprovalStatus).NotTo(BeNil())
+			Expect(*retrieved.ApprovalStatus).To(Equal("APPROVED"))
+			Expect(retrieved.ProviderName).NotTo(BeNil())
+			Expect(*retrieved.ProviderName).To(Equal("test-provider"))
 		})
 
 		It("creates resource with MODIFIED status from policy", func() {
@@ -149,6 +158,15 @@ var _ = Describe("PlacementService", func() {
 			Expect(result.ApprovalStatus).NotTo(BeNil())
 			Expect(*result.ApprovalStatus).To(Equal("MODIFIED"))
 			Expect(*result.ProviderName).To(Equal("modified-provider"))
+
+			// Verify the resource is persisted in the database with correct fields
+			retrieved, err := placementSvc.GetResource(ctx, *result.Id)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(retrieved).NotTo(BeNil())
+			Expect(retrieved.ApprovalStatus).NotTo(BeNil())
+			Expect(*retrieved.ApprovalStatus).To(Equal("MODIFIED"))
+			Expect(retrieved.ProviderName).NotTo(BeNil())
+			Expect(*retrieved.ProviderName).To(Equal("modified-provider"))
 		})
 
 		It("creates resource with specified ID", func() {
@@ -242,7 +260,7 @@ var _ = Describe("PlacementService", func() {
 			var svcErr *service.ServiceError
 			Expect(err).To(BeAssignableToTypeOf(svcErr))
 			svcErr = err.(*service.ServiceError)
-			Expect(svcErr.Code).To(Equal(service.ErrCodePolicyError))
+			Expect(svcErr.Code).To(Equal(service.ErrCodePolicyInternalError))
 		})
 
 		It("returns conflict error when duplicate ID is used", func() {

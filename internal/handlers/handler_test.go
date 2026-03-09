@@ -126,6 +126,12 @@ var _ = Describe("Handler", func() {
 			Expect(jsonResp.Spec).To(HaveKey("cpu"))
 			Expect(jsonResp.Spec).To(HaveKey("memory"))
 			Expect(jsonResp.Spec["memory"]).To(Equal("4GB"))
+
+			// Verify policy response fields are set
+			Expect(jsonResp.ApprovalStatus).NotTo(BeNil())
+			Expect(*jsonResp.ApprovalStatus).To(Equal("APPROVED"))
+			Expect(jsonResp.ProviderName).NotTo(BeNil())
+			Expect(*jsonResp.ProviderName).To(Equal("default-provider"))
 		})
 
 		It("creates with specified ID", func() {
@@ -144,6 +150,12 @@ var _ = Describe("Handler", func() {
 			jsonResp, ok := resp.(server.CreateResource201JSONResponse)
 			Expect(ok).To(BeTrue())
 			Expect(*jsonResp.Id).To(Equal(specifiedID))
+
+			// Verify policy response fields are set
+			Expect(jsonResp.ApprovalStatus).NotTo(BeNil())
+			Expect(*jsonResp.ApprovalStatus).To(Equal("APPROVED"))
+			Expect(jsonResp.ProviderName).NotTo(BeNil())
+			Expect(*jsonResp.ProviderName).To(Equal("default-provider"))
 		})
 
 		It("returns 409 for duplicate ID", func() {
@@ -304,7 +316,7 @@ var _ = Describe("Handler", func() {
 			Expect(*jsonResp.ProviderName).To(Equal("approved-provider"))
 		})
 
-		It("returns 400 when policy rejects request", func() {
+		It("returns 406 when policy rejects request", func() {
 			mockPolicy.EvaluateFunc = func(ctx context.Context, req policy.EvaluateRequest) (*policy.EvaluateResponse, error) {
 				return nil, &policy.HTTPError{StatusCode: 406, Body: "rejected by policy"}
 			}
@@ -319,11 +331,11 @@ var _ = Describe("Handler", func() {
 			resp, err := handler.CreateResource(ctx, req)
 
 			Expect(err).NotTo(HaveOccurred())
-			problemResp, ok := resp.(server.CreateResource400ApplicationProblemPlusJSONResponse)
-			Expect(ok).To(BeTrue(), "Expected 400 response but got: %T", resp)
+			problemResp, ok := resp.(server.CreateResource406ApplicationProblemPlusJSONResponse)
+			Expect(ok).To(BeTrue(), "Expected 406 response but got: %T", resp)
 			Expect(problemResp.Type).To(Equal("policy-rejected"))
 			Expect(problemResp.Status).NotTo(BeNil())
-			Expect(*problemResp.Status).To(Equal(400))
+			Expect(*problemResp.Status).To(Equal(406))
 		})
 
 		It("returns 409 when policy conflict detected", func() {
