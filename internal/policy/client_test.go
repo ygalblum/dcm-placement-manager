@@ -3,6 +3,7 @@ package policy_test
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 
@@ -113,6 +114,52 @@ var _ = Describe("Policy Client", func() {
 
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("policy engine returned status 400"))
+		})
+
+		It("returns HTTPError that can be extracted with errors.As", func() {
+			statusCode = http.StatusNotAcceptable
+			response = map[string]any{
+				"type":   "policy-rejected",
+				"title":  "Policy Rejected",
+				"status": 406,
+			}
+
+			req := policy.EvaluateRequest{
+				Spec: map[string]any{"cpu": "100"},
+			}
+
+			_, err := client.Evaluate(ctx, req)
+
+			Expect(err).To(HaveOccurred())
+
+			// Verify we can extract HTTPError using errors.As
+			var httpErr *policy.HTTPError
+			Expect(errors.As(err, &httpErr)).To(BeTrue(), "errors.As should be able to extract policy.HTTPError")
+			Expect(httpErr).NotTo(BeNil())
+			Expect(httpErr.StatusCode).To(Equal(406))
+			Expect(httpErr.Body).To(ContainSubstring("policy-rejected"))
+		})
+
+		It("returns HTTPError for 500 internal server error", func() {
+			statusCode = http.StatusInternalServerError
+			response = map[string]any{
+				"type":   "internal-error",
+				"title":  "Internal Server Error",
+				"status": 500,
+			}
+
+			req := policy.EvaluateRequest{
+				Spec: map[string]any{"cpu": "2"},
+			}
+
+			_, err := client.Evaluate(ctx, req)
+
+			Expect(err).To(HaveOccurred())
+
+			// Verify HTTPError can be extracted
+			var httpErr *policy.HTTPError
+			Expect(errors.As(err, &httpErr)).To(BeTrue())
+			Expect(httpErr.StatusCode).To(Equal(500))
 		})
 	})
 

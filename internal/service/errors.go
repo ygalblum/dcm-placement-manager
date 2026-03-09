@@ -10,15 +10,16 @@ import (
 
 // Error codes returned by service operations.
 const (
-	ErrCodeNotFound       = "NOT_FOUND"
-	ErrCodeConflict       = "CONFLICT"
-	ErrCodeValidation     = "VALIDATION"
-	ErrCodeProviderError  = "PROVIDER_ERROR"
-	ErrCodeInternal       = "INTERNAL_ERROR"
-	ErrCodePolicyError    = "POLICY_ERROR"
-	ErrCodePolicyRejected = "POLICY_REJECTED"
-	ErrCodePolicyConflict = "POLICY_CONFLICT"
-	ErrCodeSPRMError      = "SPRM_ERROR"
+	ErrCodeNotFound            = "NOT_FOUND"
+	ErrCodeConflict            = "CONFLICT"
+	ErrCodeValidation          = "VALIDATION"
+	ErrCodeProviderError       = "PROVIDER_ERROR"
+	ErrCodeInternal            = "INTERNAL_ERROR"
+	ErrCodePolicyError         = "POLICY_ERROR"
+	ErrCodePolicyInternalError = "POLICY_INTERNAL_ERROR"
+	ErrCodePolicyRejected      = "POLICY_REJECTED"
+	ErrCodePolicyConflict      = "POLICY_CONFLICT"
+	ErrCodeSPRMError           = "SPRM_ERROR"
 )
 
 // ServiceError represents a business logic error with a code for HTTP mapping.
@@ -68,6 +69,13 @@ func NewPolicyError(message string) *ServiceError {
 	}
 }
 
+func NewPolicyInternalError(message string) *ServiceError {
+	return &ServiceError{
+		Code:    ErrCodePolicyInternalError,
+		Message: message,
+	}
+}
+
 func NewPolicyRejectedError(message string) *ServiceError {
 	return &ServiceError{
 		Code:    ErrCodePolicyRejected,
@@ -98,20 +106,20 @@ func handlePolicyError(err error) *ServiceError {
 		// We have an HTTPError with status code
 		switch httpErr.StatusCode {
 		case 400:
-			return NewValidationError("invalid request format for policy evaluation")
+			return NewValidationError(httpErr.Body)
 		case 406:
-			return NewPolicyRejectedError("request explicitly rejected by policy")
+			return NewPolicyRejectedError(httpErr.Body)
 		case 409:
-			return NewPolicyConflictError("policy conflict detected")
+			return NewPolicyConflictError(httpErr.Body)
 		case 500:
-			return NewPolicyError("policy engine internal error")
+			return NewPolicyInternalError(httpErr.Body)
 		default:
 			return NewPolicyError(fmt.Sprintf("policy evaluation failed with status %d: %s", httpErr.StatusCode, httpErr.Body))
 		}
 	}
 
-	// Default to policy error for any other error
-	return NewPolicyError("policy evaluation failed: " + err.Error())
+	// Network or client communication error - not an HTTP error from policy engine
+	return NewPolicyError("policy client communication error: " + err.Error())
 }
 
 // handleSPRMError maps SPRM client errors to service errors by checking

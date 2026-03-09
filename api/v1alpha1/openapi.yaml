@@ -115,7 +115,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/Resource'
         '400':
-          description: Invalid input or policy rejected the request
+          description: Invalid request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '406':
+          description: Request rejected by Policy Engine
           content:
             application/problem+json:
               schema:
@@ -127,7 +133,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '422':
-          description: Validation exception
+          description: SPRM provider error
           content:
             application/problem+json:
               schema:
@@ -193,6 +199,12 @@ paths:
                 $ref: '#/components/schemas/Error'
         '404':
           description: Resource not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: SPRM provider error
           content:
             application/problem+json:
               schema:

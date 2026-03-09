@@ -510,6 +510,15 @@ func (response CreateResource400ApplicationProblemPlusJSONResponse) VisitCreateR
 	return json.NewEncoder(w).Encode(response)
 }
 
+type CreateResource406ApplicationProblemPlusJSONResponse Error
+
+func (response CreateResource406ApplicationProblemPlusJSONResponse) VisitCreateResourceResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(406)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type CreateResource409ApplicationProblemPlusJSONResponse Error
 
 func (response CreateResource409ApplicationProblemPlusJSONResponse) VisitCreateResourceResponse(w http.ResponseWriter) error {
@@ -570,6 +579,15 @@ type DeleteResource404ApplicationProblemPlusJSONResponse Error
 func (response DeleteResource404ApplicationProblemPlusJSONResponse) VisitDeleteResourceResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/problem+json")
 	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteResource422ApplicationProblemPlusJSONResponse Error
+
+func (response DeleteResource422ApplicationProblemPlusJSONResponse) VisitDeleteResourceResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
 
 	return json.NewEncoder(w).Encode(response)
 }

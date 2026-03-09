@@ -37,14 +37,14 @@ func handleCreateResourceError(err error) server.CreateResourceResponseObject {
 		case service.ErrCodeValidation:
 			return server.CreateResource400ApplicationProblemPlusJSONResponse(newError("validation-error", "Validation failed", svcErr.Message, 400))
 		case service.ErrCodePolicyRejected:
-			return server.CreateResource400ApplicationProblemPlusJSONResponse(newError("policy-rejected", "Policy rejected request", svcErr.Message, 400))
+			return server.CreateResource406ApplicationProblemPlusJSONResponse(newError("policy-rejected", "Policy rejected request", svcErr.Message, 406))
 		case service.ErrCodeConflict:
 			return server.CreateResource409ApplicationProblemPlusJSONResponse(newError("resource-conflict", "Resource already exists", svcErr.Message, 409))
 		case service.ErrCodePolicyConflict:
 			return server.CreateResource409ApplicationProblemPlusJSONResponse(newError("policy-conflict", "Policy conflict", svcErr.Message, 409))
 		case service.ErrCodeProviderError:
 			return server.CreateResource422ApplicationProblemPlusJSONResponse(newError("provider-error", "Provider error", svcErr.Message, 422))
-		case service.ErrCodeInternal, service.ErrCodePolicyError, service.ErrCodeSPRMError:
+		case service.ErrCodeInternal, service.ErrCodePolicyError, service.ErrCodePolicyInternalError, service.ErrCodeSPRMError:
 			return server.CreateResourcedefaultApplicationProblemPlusJSONResponse{
 				Body:       newError("internal-error", "Internal error", svcErr.Message, 500),
 				StatusCode: 500,
@@ -83,6 +83,13 @@ func handleDeleteResourceError(err error) server.DeleteResourceResponseObject {
 			return server.DeleteResource400ApplicationProblemPlusJSONResponse(newError("validation-error", "Invalid request", svcErr.Message, 400))
 		case service.ErrCodeNotFound:
 			return server.DeleteResource404ApplicationProblemPlusJSONResponse(newError("not-found", "Resource not found", svcErr.Message, 404))
+		case service.ErrCodeProviderError:
+			return server.DeleteResource422ApplicationProblemPlusJSONResponse(newError("provider-error", "Provider error", svcErr.Message, 422))
+		case service.ErrCodeInternal, service.ErrCodeSPRMError:
+			return server.DeleteResourcedefaultApplicationProblemPlusJSONResponse{
+				Body:       newError("internal-error", "Internal error", svcErr.Message, 500),
+				StatusCode: 500,
+			}
 		}
 	}
 	return server.DeleteResourcedefaultApplicationProblemPlusJSONResponse{

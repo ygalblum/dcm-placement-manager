@@ -530,6 +530,7 @@ type CreateResourceResponse struct {
 	HTTPResponse                  *http.Response
 	JSON201                       *Resource
 	ApplicationproblemJSON400     *Error
+	ApplicationproblemJSON406     *Error
 	ApplicationproblemJSON409     *Error
 	ApplicationproblemJSON422     *Error
 	ApplicationproblemJSONDefault *Error
@@ -556,6 +557,7 @@ type DeleteResourceResponse struct {
 	HTTPResponse                  *http.Response
 	ApplicationproblemJSON400     *Error
 	ApplicationproblemJSON404     *Error
+	ApplicationproblemJSON422     *Error
 	ApplicationproblemJSONDefault *Error
 }
 
@@ -747,6 +749,13 @@ func ParseCreateResourceResponse(rsp *http.Response) (*CreateResourceResponse, e
 		}
 		response.ApplicationproblemJSON400 = &dest
 
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 406:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON406 = &dest
+
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
 		var dest Error
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
@@ -800,6 +809,13 @@ func ParseDeleteResourceResponse(rsp *http.Response) (*DeleteResourceResponse, e
 			return nil, err
 		}
 		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 422:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON422 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest Error
