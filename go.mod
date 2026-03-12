@@ -3,6 +3,7 @@ module github.com/dcm-project/placement-manager
 go 1.25.5
 
 require (
+	github.com/cenkalti/backoff/v5 v5.0.3
 	github.com/dcm-project/policy-manager v0.0.0-20260305151144-64ecd5057a4f
 	github.com/dcm-project/service-provider-manager v0.0.0-20260305141649-5c7c603f8944
 	github.com/getkin/kin-openapi v0.133.0

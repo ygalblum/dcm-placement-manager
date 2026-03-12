@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"time"
 
 	"github.com/dcm-project/placement-manager/internal/policy"
 	enginev1alpha1 "github.com/dcm-project/policy-manager/api/v1alpha1/engine"
@@ -43,7 +44,7 @@ var _ = Describe("Policy Client", func() {
 		}))
 
 		var err error
-		client, err = policy.NewClient(server.URL)
+		client, err = policy.NewClient(server.URL, 5*time.Second)
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -171,10 +172,25 @@ var _ = Describe("Policy Client", func() {
 
 	Describe("NewClient", func() {
 		It("creates client with valid base URL", func() {
-			client, err := policy.NewClient("http://localhost:8080")
+			client, err := policy.NewClient("http://localhost:8080", 5*time.Second)
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(client).NotTo(BeNil())
+		})
+
+		It("enforces configured HTTP timeout", func() {
+			slowServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				time.Sleep(50 * time.Millisecond)
+				w.WriteHeader(http.StatusOK)
+			}))
+			defer slowServer.Close()
+
+			c, err := policy.NewClient(slowServer.URL, 10*time.Millisecond)
+			Expect(err).NotTo(HaveOccurred())
+
+			_, err = c.Evaluate(ctx, policy.EvaluateRequest{Spec: map[string]any{"cpu": "2"}})
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("Client.Timeout"))
 		})
 	})
 })

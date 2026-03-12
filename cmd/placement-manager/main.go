@@ -35,18 +35,18 @@ func main() {
 	defer dataStore.Close()
 
 	// Initialize policy client
-	policyClient, err := policy.NewClient(cfg.Policy.URL)
+	policyClient, err := policy.NewClient(cfg.Policy.URL, cfg.Policy.Timeout)
 	if err != nil {
 		log.Fatalf("Failed to initialize policy client: %v", err)
 	}
-	log.Printf("Policy client initialized with URL: %s", cfg.Policy.URL)
+	log.Printf("Policy client initialized with URL: %s (timeout: %s)", cfg.Policy.URL, cfg.Policy.Timeout)
 
 	// Initialize SPRM client
-	sprmClient, err := sprm.NewClient(cfg.SPRM.URL)
+	sprmClient, err := sprm.NewClient(cfg.SPRM.URL, cfg.SPRM.Timeout)
 	if err != nil {
 		log.Fatalf("Failed to initialize SPRM client: %v", err)
 	}
-	log.Printf("SPRM client initialized with URL: %s", cfg.SPRM.URL)
+	log.Printf("SPRM client initialized with URL: %s (timeout: %s)", cfg.SPRM.URL, cfg.SPRM.Timeout)
 
 	// Initialize service
 	placementService := service.NewPlacementService(dataStore, policyClient, sprmClient)

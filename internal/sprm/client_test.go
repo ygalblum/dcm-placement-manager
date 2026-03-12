@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"time"
 
 	"github.com/dcm-project/placement-manager/internal/sprm"
 	sprmv1alpha1 "github.com/dcm-project/service-provider-manager/api/v1alpha1/resource_manager"
@@ -31,9 +32,43 @@ var _ = Describe("SPRM Client", func() {
 
 	Describe("NewClient", func() {
 		It("creates a new client successfully", func() {
-			client, err := sprm.NewClient("http://localhost:8082")
+			client, err := sprm.NewClient("http://localhost:8082", 5*time.Second)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(client).NotTo(BeNil())
+		})
+
+		It("enforces configured HTTP timeout on CreateResource", func() {
+			slowServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				time.Sleep(50 * time.Millisecond)
+				w.WriteHeader(http.StatusCreated)
+			}))
+			defer slowServer.Close()
+
+			c, err := sprm.NewClient(slowServer.URL, 10*time.Millisecond)
+			Expect(err).NotTo(HaveOccurred())
+
+			_, err = c.CreateResource(ctx, sprm.CreateResourceRequest{
+				CatalogItemInstanceId: "catalog-timeout",
+				Spec:                  map[string]any{"cpu": 2},
+				ProviderName:          "test-provider",
+			})
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("Client.Timeout"))
+		})
+
+		It("enforces configured HTTP timeout on DeleteResource", func() {
+			slowServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				time.Sleep(50 * time.Millisecond)
+				w.WriteHeader(http.StatusNoContent)
+			}))
+			defer slowServer.Close()
+
+			c, err := sprm.NewClient(slowServer.URL, 10*time.Millisecond)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = c.DeleteResource(ctx, "catalog-timeout")
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("Client.Timeout"))
 		})
 	})
 
@@ -71,7 +106,7 @@ var _ = Describe("SPRM Client", func() {
 				_ = json.NewEncoder(w).Encode(response)
 			}))
 
-			client, err := sprm.NewClient(server.URL)
+			client, err := sprm.NewClient(server.URL, 5*time.Second)
 			Expect(err).NotTo(HaveOccurred())
 
 			req := sprm.CreateResourceRequest{
@@ -94,7 +129,7 @@ var _ = Describe("SPRM Client", func() {
 				_, _ = w.Write([]byte(`{"type": "validation-error", "title": "Invalid request"}`))
 			}))
 
-			client, err := sprm.NewClient(server.URL)
+			client, err := sprm.NewClient(server.URL, 5*time.Second)
 			Expect(err).NotTo(HaveOccurred())
 
 			req := sprm.CreateResourceRequest{
@@ -119,7 +154,7 @@ var _ = Describe("SPRM Client", func() {
 				_, _ = w.Write([]byte(`{"type": "internal-error", "title": "Internal server error"}`))
 			}))
 
-			client, err := sprm.NewClient(server.URL)
+			client, err := sprm.NewClient(server.URL, 5*time.Second)
 			Expect(err).NotTo(HaveOccurred())
 
 			req := sprm.CreateResourceRequest{
@@ -144,7 +179,7 @@ var _ = Describe("SPRM Client", func() {
 				_, _ = w.Write([]byte(`{"type": "conflict", "title": "Resource already exists"}`))
 			}))
 
-			client, err := sprm.NewClient(server.URL)
+			client, err := sprm.NewClient(server.URL, 5*time.Second)
 			Expect(err).NotTo(HaveOccurred())
 
 			req := sprm.CreateResourceRequest{
@@ -169,7 +204,7 @@ var _ = Describe("SPRM Client", func() {
 				_, _ = w.Write([]byte(`{"type": "provider-error", "title": "Provider validation failed"}`))
 			}))
 
-			client, err := sprm.NewClient(server.URL)
+			client, err := sprm.NewClient(server.URL, 5*time.Second)
 			Expect(err).NotTo(HaveOccurred())
 
 			req := sprm.CreateResourceRequest{
@@ -197,7 +232,7 @@ var _ = Describe("SPRM Client", func() {
 				w.WriteHeader(http.StatusNoContent)
 			}))
 
-			client, err := sprm.NewClient(server.URL)
+			client, err := sprm.NewClient(server.URL, 5*time.Second)
 			Expect(err).NotTo(HaveOccurred())
 
 			err = client.DeleteResource(ctx, "catalog-123")
@@ -211,7 +246,7 @@ var _ = Describe("SPRM Client", func() {
 				_, _ = w.Write([]byte(`{"type": "not-found", "title": "Resource not found"}`))
 			}))
 
-			client, err := sprm.NewClient(server.URL)
+			client, err := sprm.NewClient(server.URL, 5*time.Second)
 			Expect(err).NotTo(HaveOccurred())
 
 			err = client.DeleteResource(ctx, "catalog-nonexistent")
@@ -230,7 +265,7 @@ var _ = Describe("SPRM Client", func() {
 				_, _ = w.Write([]byte(`{"type": "invalid-request", "title": "Invalid ID format"}`))
 			}))
 
-			client, err := sprm.NewClient(server.URL)
+			client, err := sprm.NewClient(server.URL, 5*time.Second)
 			Expect(err).NotTo(HaveOccurred())
 
 			err = client.DeleteResource(ctx, "invalid-id")
@@ -249,7 +284,7 @@ var _ = Describe("SPRM Client", func() {
 				_, _ = w.Write([]byte(`{"type": "internal-error", "title": "Internal server error"}`))
 			}))
 
-			client, err := sprm.NewClient(server.URL)
+			client, err := sprm.NewClient(server.URL, 5*time.Second)
 			Expect(err).NotTo(HaveOccurred())
 
 			err = client.DeleteResource(ctx, "catalog-123")

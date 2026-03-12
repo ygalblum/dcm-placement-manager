@@ -3,7 +3,11 @@ package sprm
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"time"
 
+	"github.com/cenkalti/backoff/v5"
+	"github.com/dcm-project/placement-manager/internal/httputil"
 	sprmv1alpha1 "github.com/dcm-project/service-provider-manager/api/v1alpha1/resource_manager"
 	sprmclient "github.com/dcm-project/service-provider-manager/pkg/client/resource_manager"
 )
@@ -38,16 +42,24 @@ func (e *HTTPError) Error() string {
 }
 
 type client struct {
-	sprm *sprmclient.ClientWithResponses
+	sprm      *sprmclient.ClientWithResponses
+	retryOpts []backoff.RetryOption
 }
 
 // NewClient creates a new Service Provider Resource Manager client
-func NewClient(baseURL string, opts ...sprmclient.ClientOption) (Client, error) {
+func NewClient(baseURL string, timeout time.Duration, opts ...sprmclient.ClientOption) (Client, error) {
+	httpClient := &http.Client{Timeout: timeout}
+	opts = append([]sprmclient.ClientOption{sprmclient.WithHTTPClient(httpClient)}, opts...)
+
 	sprm, err := sprmclient.NewClientWithResponses(baseURL+"/api/v1alpha1", opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create sprm client: %w", err)
 	}
-	return &client{sprm: sprm}, nil
+
+	return &client{
+		sprm:      sprm,
+		retryOpts: httputil.DefaultRetryOpts(),
+	}, nil
 }
 
 // CreateResource sends a resource creation request to the appropriate service provider
@@ -64,18 +76,27 @@ func (c *client) CreateResource(ctx context.Context, req CreateResourceRequest) 
 	}
 
 	// Call the SP Resource Manager API
-	resp, err := c.sprm.CreateInstanceWithResponse(ctx, params, body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to call sprm: %w", err)
+	operation := func() (*CreateResourceResponse, error) {
+		resp, err := c.sprm.CreateInstanceWithResponse(ctx, params, body)
+		if err != nil {
+			return nil, fmt.Errorf("failed to call sprm: %w", err)
+		}
+
+		if resp.JSON201 == nil {
+			httpErr := &HTTPError{
+				StatusCode: resp.StatusCode(),
+				Body:       string(resp.Body),
+			}
+			if httputil.IsPermanentHTTPError(resp.StatusCode()) {
+				return nil, backoff.Permanent(httpErr)
+			}
+			return nil, httpErr
+		}
+
+		return mapCreateInstanceResponse(resp.JSON201), nil
 	}
 
-	if resp.JSON201 == nil {
-		return nil, &HTTPError{
-			StatusCode: resp.StatusCode(),
-			Body:       string(resp.Body),
-		}
-	}
-	return mapCreateInstanceResponse(resp.JSON201), nil
+	return backoff.Retry(ctx, operation, c.retryOpts...)
 }
 
 func mapCreateInstanceResponse(instance *sprmv1alpha1.ServiceTypeInstance) *CreateResourceResponse {
@@ -95,18 +116,27 @@ func mapCreateInstanceResponse(instance *sprmv1alpha1.ServiceTypeInstance) *Crea
 // DeleteResource deletes a resource from the service provider
 func (c *client) DeleteResource(ctx context.Context, catalogItemInstanceId string) error {
 	// Call the SPRM API to delete the instance
-	resp, err := c.sprm.DeleteInstanceWithResponse(ctx, catalogItemInstanceId)
-	if err != nil {
-		return fmt.Errorf("failed to call sprm delete: %w", err)
+	operation := func() (any, error) {
+		resp, err := c.sprm.DeleteInstanceWithResponse(ctx, catalogItemInstanceId)
+		if err != nil {
+			return nil, fmt.Errorf("failed to call sprm delete: %w", err)
+		}
+
+		if resp.StatusCode() == 204 {
+			return nil, nil
+		}
+
+		httpErr := &HTTPError{
+			StatusCode: resp.StatusCode(),
+			Body:       string(resp.Body),
+		}
+
+		if httputil.IsPermanentHTTPError(resp.StatusCode()) {
+			return nil, backoff.Permanent(httpErr)
+		}
+		return nil, httpErr
 	}
 
-	if resp.StatusCode() == 204 {
-		return nil
-	}
-
-	// Handle error responses
-	return &HTTPError{
-		StatusCode: resp.StatusCode(),
-		Body:       string(resp.Body),
-	}
+	_, err := backoff.Retry(ctx, operation, c.retryOpts...)
+	return err
 }

@@ -2,6 +2,7 @@ package config
 
 import (
 	"log"
+	"time"
 
 	"github.com/kelseyhightower/envconfig"
 )
@@ -30,12 +31,14 @@ type DBConfig struct {
 
 // PolicyConfig holds policy manager configuration
 type PolicyConfig struct {
-	URL string `envconfig:"POLICY_MANAGER_EVALUATION_URL" default:"http://localhost:8081"`
+	URL     string        `envconfig:"POLICY_MANAGER_EVALUATION_URL" default:"http://localhost:8081"`
+	Timeout time.Duration `envconfig:"POLICY_MANAGER_EVALUATION_TIMEOUT" default:"10s"`
 }
 
 // SPRMConfig holds service provider resource manager configuration
 type SPRMConfig struct {
-	URL string `envconfig:"SP_RESOURCE_MANAGER_URL" default:"http://localhost:8082"`
+	URL     string        `envconfig:"SP_RESOURCE_MANAGER_URL" default:"http://localhost:8082"`
+	Timeout time.Duration `envconfig:"SP_RESOURCE_MANAGER_TIMEOUT" default:"10s"`
 }
 
 // Load reads configuration from environment variables

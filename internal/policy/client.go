@@ -3,7 +3,11 @@ package policy
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"time"
 
+	"github.com/cenkalti/backoff/v5"
+	"github.com/dcm-project/placement-manager/internal/httputil"
 	enginev1alpha1 "github.com/dcm-project/policy-manager/api/v1alpha1/engine"
 	"github.com/dcm-project/policy-manager/pkg/engineclient"
 )
@@ -36,16 +40,24 @@ func (e *HTTPError) Error() string {
 }
 
 type client struct {
-	engine *engineclient.ClientWithResponses
+	engine    *engineclient.ClientWithResponses
+	retryOpts []backoff.RetryOption
 }
 
 // NewClient creates a new Policy Manager engine client
-func NewClient(baseURL string, opts ...engineclient.ClientOption) (Client, error) {
+func NewClient(baseURL string, timeout time.Duration, opts ...engineclient.ClientOption) (Client, error) {
+	httpClient := &http.Client{Timeout: timeout}
+	opts = append([]engineclient.ClientOption{engineclient.WithHTTPClient(httpClient)}, opts...)
+
 	engine, err := engineclient.NewClientWithResponses(baseURL+"/api/v1alpha1/engine", opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create policy engine client: %w", err)
 	}
-	return &client{engine: engine}, nil
+
+	return &client{
+		engine:    engine,
+		retryOpts: httputil.DefaultRetryOpts(),
+	}, nil
 }
 
 // Evaluate sends a service instance spec to the policy engine for evaluation
@@ -56,19 +68,27 @@ func (c *client) Evaluate(ctx context.Context, req EvaluateRequest) (*EvaluateRe
 		},
 	}
 
-	resp, err := c.engine.EvaluateRequestWithResponse(ctx, body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to call policy engine: %w", err)
-	}
-
-	if resp.JSON200 == nil {
-		return nil, &HTTPError{
-			StatusCode: resp.StatusCode(),
-			Body:       string(resp.Body),
+	operation := func() (*EvaluateResponse, error) {
+		resp, err := c.engine.EvaluateRequestWithResponse(ctx, body)
+		if err != nil {
+			return nil, fmt.Errorf("failed to call policy engine: %w", err)
 		}
+
+		if resp.JSON200 == nil {
+			httpErr := &HTTPError{
+				StatusCode: resp.StatusCode(),
+				Body:       string(resp.Body),
+			}
+			if httputil.IsPermanentHTTPError(resp.StatusCode()) {
+				return nil, backoff.Permanent(httpErr)
+			}
+			return nil, httpErr
+		}
+
+		return mapEvaluateResponse(resp.JSON200), nil
 	}
 
-	return mapEvaluateResponse(resp.JSON200), nil
+	return backoff.Retry(ctx, operation, c.retryOpts...)
 }
 
 func mapEvaluateResponse(r *enginev1alpha1.EvaluateResponse) *EvaluateResponse {
