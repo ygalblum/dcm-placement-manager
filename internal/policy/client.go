@@ -49,7 +49,7 @@ func NewClient(baseURL string, timeout time.Duration, opts ...engineclient.Clien
 	httpClient := &http.Client{Timeout: timeout}
 	opts = append([]engineclient.ClientOption{engineclient.WithHTTPClient(httpClient)}, opts...)
 
-	engine, err := engineclient.NewClientWithResponses(baseURL+"/api/v1alpha1/engine", opts...)
+	engine, err := engineclient.NewClientWithResponses(baseURL+"/api/v1alpha1", opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create policy engine client: %w", err)
 	}

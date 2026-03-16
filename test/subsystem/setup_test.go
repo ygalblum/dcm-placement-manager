@@ -22,7 +22,7 @@ func stubPolicyEvaluateApproved(providerName string) {
 	stub := map[string]any{
 		"request": map[string]any{
 			"method":     "POST",
-			"urlPattern": "/api/v1alpha1/engine/policies:evaluateRequest",
+			"urlPattern": "/api/v1alpha1/policies:evaluateRequest",
 		},
 		"response": map[string]any{
 			"status": 200,
@@ -45,7 +45,7 @@ func stubPolicyEvaluateModified(providerName string, evaluatedSpec map[string]an
 	stub := map[string]any{
 		"request": map[string]any{
 			"method":     "POST",
-			"urlPattern": "/api/v1alpha1/engine/policies:evaluateRequest",
+			"urlPattern": "/api/v1alpha1/policies:evaluateRequest",
 		},
 		"response": map[string]any{
 			"status": 200,
@@ -68,7 +68,7 @@ func stubPolicyEvaluateRejected() {
 	stub := map[string]any{
 		"request": map[string]any{
 			"method":     "POST",
-			"urlPattern": "/api/v1alpha1/engine/policies:evaluateRequest",
+			"urlPattern": "/api/v1alpha1/policies:evaluateRequest",
 		},
 		"response": map[string]any{
 			"status": 406,
@@ -89,7 +89,7 @@ func stubPolicyEvaluateFailure() {
 	stub := map[string]any{
 		"request": map[string]any{
 			"method":     "POST",
-			"urlPattern": "/api/v1alpha1/engine/policies:evaluateRequest",
+			"urlPattern": "/api/v1alpha1/policies:evaluateRequest",
 		},
 		"response": map[string]any{
 			"status": 500,
@@ -107,7 +107,7 @@ func stubPolicyEvaluateFailure() {
 }
 
 func verifyPolicyEvaluateCalled(expectedCount int) {
-	verifyWireMockRequestCount(policyWireMockURL, "POST", "/api/v1alpha1/engine/policies:evaluateRequest", expectedCount)
+	verifyWireMockRequestCount(policyWireMockURL, "POST", "/api/v1alpha1/policies:evaluateRequest", expectedCount)
 }
 
 // --- SPRM WireMock helpers ---
