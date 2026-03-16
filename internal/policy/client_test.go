@@ -14,7 +14,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Policy Client", func() {
+var _ = Describe("Policy Engine Client", func() {
 	var (
 		server     *httptest.Server
 		client     policy.Client

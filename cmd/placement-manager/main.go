@@ -34,12 +34,12 @@ func main() {
 	dataStore := store.NewStore(db)
 	defer dataStore.Close()
 
-	// Initialize policy client
-	policyClient, err := policy.NewClient(cfg.Policy.URL, cfg.Policy.Timeout)
+	// Initialize policy evaluation client
+	policyEvaluationClient, err := policy.NewClient(cfg.PolicyEvaluation.URL, cfg.PolicyEvaluation.Timeout)
 	if err != nil {
-		log.Fatalf("Failed to initialize policy client: %v", err)
+		log.Fatalf("Failed to initialize policy evaluation client: %v", err)
 	}
-	log.Printf("Policy client initialized with URL: %s (timeout: %s)", cfg.Policy.URL, cfg.Policy.Timeout)
+	log.Printf("Policy evaluation client initialized with URL: %s (timeout: %s)", cfg.PolicyEvaluation.URL, cfg.PolicyEvaluation.Timeout)
 
 	// Initialize SPRM client
 	sprmClient, err := sprm.NewClient(cfg.SPRM.URL, cfg.SPRM.Timeout)
@@ -49,7 +49,7 @@ func main() {
 	log.Printf("SPRM client initialized with URL: %s (timeout: %s)", cfg.SPRM.URL, cfg.SPRM.Timeout)
 
 	// Initialize service
-	placementService := service.NewPlacementService(dataStore, policyClient, sprmClient)
+	placementService := service.NewPlacementService(dataStore, policyEvaluationClient, sprmClient)
 
 	// Create TCP listener
 	listener, err := net.Listen("tcp", cfg.Service.Address)

@@ -8,10 +8,10 @@ import (
 )
 
 type Config struct {
-	Service  *ServiceConfig
-	Database *DBConfig
-	Policy   *PolicyConfig
-	SPRM     *SPRMConfig
+	Service          *ServiceConfig
+	Database         *DBConfig
+	PolicyEvaluation *PolicyManagerEvaluationConfig
+	SPRM             *SPRMConfig
 }
 
 type ServiceConfig struct {
@@ -29,8 +29,8 @@ type DBConfig struct {
 	Password string `envconfig:"DB_PASSWORD"`
 }
 
-// PolicyConfig holds policy manager configuration
-type PolicyConfig struct {
+// PolicyManagerEvaluationConfig holds policy manager configuration
+type PolicyManagerEvaluationConfig struct {
 	URL     string        `envconfig:"POLICY_MANAGER_EVALUATION_URL" default:"http://localhost:8081"`
 	Timeout time.Duration `envconfig:"POLICY_MANAGER_EVALUATION_TIMEOUT" default:"10s"`
 }

@@ -24,7 +24,7 @@ type EvaluateResponse struct {
 	EvaluatedSpec    map[string]any `json:"evaluated_spec"`
 }
 
-// Client defines the interface for interacting with the Policy Manager
+// Client defines the interface for interacting with the policy engine
 type Client interface {
 	Evaluate(ctx context.Context, req EvaluateRequest) (*EvaluateResponse, error)
 }
@@ -44,7 +44,7 @@ type client struct {
 	retryOpts []backoff.RetryOption
 }
 
-// NewClient creates a new Policy Manager engine client
+// NewClient creates a new policy engine client
 func NewClient(baseURL string, timeout time.Duration, opts ...engineclient.ClientOption) (Client, error) {
 	httpClient := &http.Client{Timeout: timeout}
 	opts = append([]engineclient.ClientOption{engineclient.WithHTTPClient(httpClient)}, opts...)
