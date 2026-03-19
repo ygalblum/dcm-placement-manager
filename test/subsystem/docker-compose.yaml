@@ -1,12 +1,14 @@
 services:
   postgres:
-    image: docker.io/library/postgres:17
+    image: quay.io/sclorg/postgresql-16-c9s:latest
     environment:
-      POSTGRES_DB: placement-manager
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: adminpass
+      POSTGRESQL_DATABASE: placement-manager
+      POSTGRESQL_USER: admin
+      POSTGRESQL_PASSWORD: adminpass
     ports:
-      - "25432:5432"
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/pgsql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U admin -d placement-manager"]
       interval: 2s
@@ -14,7 +16,7 @@ services:
       retries: 10
 
   policy-manager:
-    image: docker.io/wiremock/wiremock:3x
+    image: wiremock/wiremock:3.13.2
     ports:
       - "28081:8080"
     healthcheck:
@@ -24,7 +26,7 @@ services:
       retries: 10
 
   sp-resource-manager:
-    image: docker.io/wiremock/wiremock:3x
+    image: wiremock/wiremock:3.13.2
     ports:
       - "28082:8080"
     healthcheck:
@@ -61,3 +63,6 @@ services:
       interval: 2s
       timeout: 5s
       retries: 15
+
+volumes:
+  postgres_data: {}
