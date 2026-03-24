@@ -3,7 +3,7 @@
 DCM Placement Manager is a Go service that orchestrates resource provisioning within the DCM ecosystem.
 On receiving a creation request, the DCM Placement Manager evaluates the spec against
 the [Policy Engine](https://github.com/dcm-project/policy-manager),
-persists the resource, and forwards it to
+persists the original spec, and forwards the validated or mutated spec (by Policy Engine) to
 the [Service Provider Resource Manager (SPRM)](https://github.com/dcm-project/service-provider-manager)
 for provisioning.
 
@@ -32,24 +32,23 @@ and uses [RFC 7807](https://tools.ietf.org/html/rfc7807) Problem Details for err
 ```
                     ┌──────────────────────────────────────────┐
                     │           Placement Manager              │
-  Create / Get /    │                                          │
-  List / Delete     │  ┌──────────┐  ┌──────────┐              │       ┌──────────────┐
-  (port 8080)  ────>│  │ Handlers │──│ Service  │───────────── │──────>│  PostgreSQL  │
+                    │                                          │
+  Create / Get /    │  ┌──────────┐  ┌──────────┐              │       ┌──────────────┐
+  List / Delete ───>│  │ Handlers │──│ Service  │───────────── │──────>│  PostgreSQL  │
                     │  └──────────┘  └──────────┘              │       └──────────────┘
                     │                     │                    │
                     │              ┌──────┴──────┐             │
                     │              │             │             │
                     │              ▼             ▼             │
-                    │     ┌──────────────┐ ┌──────────┐        │
-                    │     │Policy Engine │ │   SPRM   │        │
-                    │     └──────────────┘ └──────────┘        │
+                    │     ┌──────────────┐ ┌────────────┐      │
+                    │     │Policy Manager│ │ SP Manager │      │
+                    │     └──────────────┘ └────────────┘      │
                     └──────────────────────────────────────────┘
                               │                  │
                               ▼                  ▼
                     ┌──────────────────┐  ┌──────────────────┐
-                    │  Policy Manager  │  │ Service Provider │
-                    │   (port 8081)    │  │ Resource Manager │
-                    │                  │  │   (port 8082)    │
+                    │ Policy Engine    │  │ Service Provider │
+                    │ (Evaluation)     │  │ Resource Manager │               
                     └──────────────────┘  └──────────────────┘
 ```
 
@@ -59,8 +58,9 @@ The service follows a three-layer architecture:
 ### Resource Creation Flow
 
 1. Client sends a `POST /resources` request with the value of `catalog_item_instance_id` and `spec`.
-2. The service evaluates the spec against the **Policy Engine**. The policy returns an approval status (`APPROVED` or
-   `MODIFIED`), a selected provider, and an optionally modified spec.
+2. The service evaluates the spec against the **Policy Engine**. The policy returns an approval status
+   (`APPROVED` or`MODIFIED`), a selected provider, and an optionally modified spec. 
+   Also, it can return a HTTP code to reject a request.
 3. The resource is persisted in the database with the **original** spec, approval status, and provider name.
 4. The **evaluated** spec (potentially modified by policy) is forwarded to the **SPRM** for provisioning.
 5. If SPRM provisioning fails, the database record is rolled back.
@@ -263,11 +263,8 @@ make subsystem-test         # Run subsystem tests
 make subsystem-test-down    # Stop and clean up
 ```
 
-Subsystem tests use the `subsystem` build tag and read the following environment variables:
-
-- `PLACEMENT_MANAGER_URL` (default: `http://localhost:28080`)
-- `POLICY_MANAGER_EVALUATION_URL` (default: `http://localhost:28081`)
-- `SP_RESOURCE_MANAGER_URL` (default: `http://localhost:28082`)
+Subsystem tests use the `subsystem` build tag and run against the services defined in the
+[subsystem docker compose file](https://github.com/dcm-project/placement-manager/blob/main/test/subsystem/docker-compose.yaml).
 
 ### AEP Compliance
 
