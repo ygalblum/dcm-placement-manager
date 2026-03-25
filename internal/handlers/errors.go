@@ -1,11 +1,26 @@
 package handlers
 
 import (
+	"context"
 	"errors"
 
 	"github.com/dcm-project/placement-manager/internal/api/server"
+	"github.com/dcm-project/placement-manager/internal/logging"
 	"github.com/dcm-project/placement-manager/internal/service"
 )
+
+// logServiceError logs at Warn level for client errors (4xx) and Error level
+// for internal failures (5xx), so log severity matches HTTP response semantics.
+func logServiceError(ctx context.Context, msg string, err error, attrs ...any) {
+	log := logging.FromContext(ctx)
+	args := append([]any{"error", err}, attrs...)
+	var svcErr *service.ServiceError
+	if service.IsClientError(err, &svcErr) {
+		log.Warn(msg, args...)
+	} else {
+		log.Error(msg, args...)
+	}
+}
 
 // newError creates an RFC 7807 compliant error response.
 func newError(errType, title, detail string, status int) server.Error {

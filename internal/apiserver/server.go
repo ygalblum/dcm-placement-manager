@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net"
 	"net/http"
 	"time"
@@ -11,6 +12,7 @@ import (
 	"github.com/dcm-project/placement-manager/api/v1alpha1"
 	"github.com/dcm-project/placement-manager/internal/api/server"
 	"github.com/dcm-project/placement-manager/internal/config"
+	"github.com/dcm-project/placement-manager/internal/logging"
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -35,6 +37,8 @@ func New(cfg *config.Config, listener net.Listener, handler server.StrictServerI
 
 func (s *Server) Run(ctx context.Context) error {
 	router := chi.NewRouter()
+	router.Use(middleware.RequestID)
+	router.Use(logging.RequestLogger)
 	router.Use(middleware.Logger)
 	router.Use(middleware.Recoverer)
 
@@ -64,11 +68,15 @@ func (s *Server) Run(ctx context.Context) error {
 		ctxTimeout, cancel := context.WithTimeout(context.Background(), gracefulShutdownTimeout)
 		defer cancel()
 		srv.SetKeepAlivesEnabled(false)
+		slog.Info("Shutting down server")
 		_ = srv.Shutdown(ctxTimeout)
 	}()
 
+	slog.Info("Starting server", "address", s.listener.Addr().String())
 	if err := srv.Serve(s.listener); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return err
 	}
+
+	slog.Info("Server stopped")
 	return nil
 }

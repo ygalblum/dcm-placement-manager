@@ -1,7 +1,7 @@
 package config
 
 import (
-	"log"
+	"log/slog"
 	"time"
 
 	"github.com/kelseyhightower/envconfig"
@@ -50,7 +50,7 @@ func Load() (*Config, error) {
 
 	// Validate and set defaults for Database.Type
 	if cfg.Database.Type != "pgsql" && cfg.Database.Type != "sqlite" {
-		log.Printf("WARNING: invalid DB_TYPE %q, defaulting to sqlite", cfg.Database.Type)
+		slog.Warn("Invalid DB_TYPE, defaulting to sqlite", "db_type", cfg.Database.Type)
 		cfg.Database.Type = "sqlite"
 	}
 

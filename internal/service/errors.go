@@ -97,6 +97,20 @@ func NewSPRMError(message string) *ServiceError {
 	}
 }
 
+// IsClientError returns true if err is a ServiceError representing a client-side
+// (4xx) problem. If svcErr is non-nil it is populated with the unwrapped error.
+func IsClientError(err error, svcErr **ServiceError) bool {
+	if !errors.As(err, svcErr) {
+		return false
+	}
+	switch (*svcErr).Code {
+	case ErrCodeValidation, ErrCodeNotFound, ErrCodeConflict,
+		ErrCodePolicyRejected, ErrCodePolicyConflict, ErrCodeProviderError:
+		return true
+	}
+	return false
+}
+
 // handlePolicyError maps policy client errors to service errors by checking
 // the error type and extracting the HTTP status code.
 func handlePolicyError(err error) *ServiceError {

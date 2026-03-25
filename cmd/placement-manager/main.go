@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"net"
 	"os"
 	"os/signal"
@@ -11,6 +11,7 @@ import (
 	"github.com/dcm-project/placement-manager/internal/apiserver"
 	"github.com/dcm-project/placement-manager/internal/config"
 	"github.com/dcm-project/placement-manager/internal/handlers"
+	"github.com/dcm-project/placement-manager/internal/logging"
 	"github.com/dcm-project/placement-manager/internal/policy"
 	"github.com/dcm-project/placement-manager/internal/service"
 	"github.com/dcm-project/placement-manager/internal/sprm"
@@ -18,57 +19,75 @@ import (
 )
 
 func main() {
-	// Load configuration
+	os.Exit(run())
+}
+
+func run() int {
 	cfg, err := config.Load()
 	if err != nil {
-		log.Fatalf("Failed to load config: %v", err)
+		slog.Error("Failed to load configuration", "error", err)
+		return 1
 	}
 
-	// Initialize database
+	logging.Init(cfg.Service.LogLevel)
+
+	slog.Info("Configuration loaded",
+		"bind_address", cfg.Service.Address,
+		"db_type", cfg.Database.Type,
+		"db_host", cfg.Database.Hostname,
+		"db_name", cfg.Database.Name,
+		"log_level", cfg.Service.LogLevel,
+	)
+
 	db, err := store.InitDB(cfg)
 	if err != nil {
-		log.Fatalf("Failed to initialize database: %v", err)
+		slog.Error("Failed to initialize database", "error", err)
+		return 1
 	}
 
 	// Initialize store
 	dataStore := store.NewStore(db)
 	defer dataStore.Close()
 
-	// Initialize policy evaluation client
-	policyEvaluationClient, err := policy.NewClient(cfg.PolicyEvaluation.URL, cfg.PolicyEvaluation.Timeout)
+	policyClient, err := policy.NewClient(cfg.PolicyEvaluation.URL, cfg.PolicyEvaluation.Timeout)
 	if err != nil {
-		log.Fatalf("Failed to initialize policy evaluation client: %v", err)
+		slog.Error("Failed to initialize policy client", "error", err)
+		return 1
 	}
-	log.Printf("Policy evaluation client initialized with URL: %s (timeout: %s)", cfg.PolicyEvaluation.URL, cfg.PolicyEvaluation.Timeout)
+	slog.Info("Policy client initialized",
+		"url", cfg.PolicyEvaluation.URL,
+		"timeout", cfg.PolicyEvaluation.Timeout,
+	)
 
-	// Initialize SPRM client
 	sprmClient, err := sprm.NewClient(cfg.SPRM.URL, cfg.SPRM.Timeout)
 	if err != nil {
-		log.Fatalf("Failed to initialize SPRM client: %v", err)
+		slog.Error("Failed to initialize SPRM client", "error", err)
+		return 1
 	}
-	log.Printf("SPRM client initialized with URL: %s (timeout: %s)", cfg.SPRM.URL, cfg.SPRM.Timeout)
+	slog.Info("SPRM client initialized",
+		"url", cfg.SPRM.URL,
+		"timeout", cfg.SPRM.Timeout,
+	)
 
-	// Initialize service
-	placementService := service.NewPlacementService(dataStore, policyEvaluationClient, sprmClient)
+	placementService := service.NewPlacementService(dataStore, policyClient, sprmClient)
 
-	// Create TCP listener
 	listener, err := net.Listen("tcp", cfg.Service.Address)
 	if err != nil {
-		log.Fatalf("Failed to create listener: %v", err)
+		slog.Error("Failed to create listener", "error", err)
+		return 1
 	}
 
-	// Initialize handler
 	handler := handlers.NewHandler(placementService)
 
-	// Create API server
 	srv := apiserver.New(cfg, listener, handler)
 
-	// Setup graceful shutdown
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
-	log.Printf("Starting Placement Manager API server on %s", listener.Addr().String())
 	if err := srv.Run(ctx); err != nil {
-		log.Fatalf("Server failed: %v", err)
+		slog.Error("Server failed", "error", err)
+		return 1
 	}
+
+	return 0
 }
