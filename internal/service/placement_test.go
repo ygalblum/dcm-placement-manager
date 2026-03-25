@@ -286,6 +286,31 @@ var _ = Describe("PlacementService", func() {
 			Expect(svcErr.Message).To(ContainSubstring("I'm a teapot"))
 		})
 
+		It("returns error when policy response is missing selected provider", func() {
+			mockPolicy.EvaluateFunc = func(ctx context.Context, req policy.EvaluateRequest) (*policy.EvaluateResponse, error) {
+				return &policy.EvaluateResponse{
+					Status:           "APPROVED",
+					SelectedProvider: "",
+					EvaluatedSpec:    req.Spec,
+				}, nil
+			}
+
+			resource := &server.Resource{
+				CatalogItemInstanceId: "catalog-no-provider",
+				Spec:                  map[string]any{"cpu": 2},
+			}
+
+			result, err := placementSvc.CreateResource(ctx, resource, nil)
+
+			Expect(err).To(HaveOccurred())
+			Expect(result).To(BeNil())
+			var svcErr *service.ServiceError
+			Expect(err).To(BeAssignableToTypeOf(svcErr))
+			svcErr = err.(*service.ServiceError)
+			Expect(svcErr.Code).To(Equal(service.ErrCodePolicyInternalError))
+			Expect(svcErr.Message).To(ContainSubstring("missing selected provider"))
+		})
+
 		It("returns error when policy client communication fails", func() {
 			mockPolicy.EvaluateFunc = func(ctx context.Context, req policy.EvaluateRequest) (*policy.EvaluateResponse, error) {
 				return nil, errors.New("connection refused")

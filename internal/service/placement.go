@@ -50,6 +50,10 @@ func (s *PlacementService) CreateResource(ctx context.Context, req *server.Resou
 		return nil, handlePolicyError(err)
 	}
 
+	if policyResponse.SelectedProvider == "" {
+		return nil, NewPolicyInternalError("policy response missing selected provider")
+	}
+
 	// Extract approvalStatus and providerName from policy response
 	approvalStatus := policyResponse.Status
 	providerName := policyResponse.SelectedProvider
