@@ -219,7 +219,7 @@ var _ = Describe("Handler", func() {
 
 		It("handles policy MODIFIED status and sets approval status", func() {
 			var capturedEvaluatedSpec map[string]any
-			mockPolicy.EvaluateFunc = func(ctx context.Context, req policy.EvaluateRequest) (*policy.EvaluateResponse, error) {
+			mockPolicy.EvaluateFunc = func(_ context.Context, req policy.EvaluateRequest) (*policy.EvaluateResponse, error) {
 				// Verify input spec
 				Expect(req.Spec).To(HaveKey("cpu"))
 				Expect(req.Spec["cpu"]).To(Equal(2))
@@ -271,7 +271,7 @@ var _ = Describe("Handler", func() {
 
 		It("handles policy APPROVED status", func() {
 			var capturedEvaluatedSpec map[string]any
-			mockPolicy.EvaluateFunc = func(ctx context.Context, req policy.EvaluateRequest) (*policy.EvaluateResponse, error) {
+			mockPolicy.EvaluateFunc = func(_ context.Context, req policy.EvaluateRequest) (*policy.EvaluateResponse, error) {
 				// Verify input spec
 				Expect(req.Spec).To(HaveKey("cpu"))
 				Expect(req.Spec["cpu"]).To(Equal(4))
@@ -317,7 +317,7 @@ var _ = Describe("Handler", func() {
 		})
 
 		It("returns 406 when policy rejects request", func() {
-			mockPolicy.EvaluateFunc = func(ctx context.Context, req policy.EvaluateRequest) (*policy.EvaluateResponse, error) {
+			mockPolicy.EvaluateFunc = func(_ context.Context, _ policy.EvaluateRequest) (*policy.EvaluateResponse, error) {
 				return nil, &policy.HTTPError{StatusCode: 406, Body: "rejected by policy"}
 			}
 
@@ -339,7 +339,7 @@ var _ = Describe("Handler", func() {
 		})
 
 		It("returns 409 when policy conflict detected", func() {
-			mockPolicy.EvaluateFunc = func(ctx context.Context, req policy.EvaluateRequest) (*policy.EvaluateResponse, error) {
+			mockPolicy.EvaluateFunc = func(_ context.Context, _ policy.EvaluateRequest) (*policy.EvaluateResponse, error) {
 				return nil, &policy.HTTPError{StatusCode: 409, Body: "policy conflict"}
 			}
 
@@ -359,7 +359,7 @@ var _ = Describe("Handler", func() {
 		})
 
 		It("returns 500 when policy engine internal error", func() {
-			mockPolicy.EvaluateFunc = func(ctx context.Context, req policy.EvaluateRequest) (*policy.EvaluateResponse, error) {
+			mockPolicy.EvaluateFunc = func(_ context.Context, _ policy.EvaluateRequest) (*policy.EvaluateResponse, error) {
 				return nil, &policy.HTTPError{StatusCode: 500, Body: "internal server error"}
 			}
 
@@ -380,7 +380,7 @@ var _ = Describe("Handler", func() {
 		})
 
 		It("returns 500 when SPRM internal error", func() {
-			mockSPRM.CreateResourceFunc = func(ctx context.Context, req sprm.CreateResourceRequest) (*sprm.CreateResourceResponse, error) {
+			mockSPRM.CreateResourceFunc = func(_ context.Context, _ sprm.CreateResourceRequest) (*sprm.CreateResourceResponse, error) {
 				return nil, &sprm.HTTPError{StatusCode: 500, Body: "SPRM internal server error"}
 			}
 
@@ -402,7 +402,7 @@ var _ = Describe("Handler", func() {
 		})
 
 		It("returns 400 when policy validation fails", func() {
-			mockPolicy.EvaluateFunc = func(ctx context.Context, req policy.EvaluateRequest) (*policy.EvaluateResponse, error) {
+			mockPolicy.EvaluateFunc = func(_ context.Context, _ policy.EvaluateRequest) (*policy.EvaluateResponse, error) {
 				return nil, &policy.HTTPError{StatusCode: 400, Body: "bad request"}
 			}
 

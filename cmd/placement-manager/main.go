@@ -47,7 +47,11 @@ func run() int {
 
 	// Initialize store
 	dataStore := store.NewStore(db)
-	defer dataStore.Close()
+	defer func() {
+		if err := dataStore.Close(); err != nil {
+			slog.Error("Failed to close data store", "error", err)
+		}
+	}()
 
 	policyClient, err := policy.NewClient(cfg.PolicyEvaluation.URL, cfg.PolicyEvaluation.Timeout)
 	if err != nil {

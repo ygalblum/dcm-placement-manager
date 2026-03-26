@@ -38,7 +38,7 @@ var _ = Describe("SPRM Client", func() {
 		})
 
 		It("enforces configured HTTP timeout on CreateResource", func() {
-			slowServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			slowServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 				time.Sleep(50 * time.Millisecond)
 				w.WriteHeader(http.StatusCreated)
 			}))
@@ -57,7 +57,7 @@ var _ = Describe("SPRM Client", func() {
 		})
 
 		It("enforces configured HTTP timeout on DeleteResource", func() {
-			slowServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			slowServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 				time.Sleep(50 * time.Millisecond)
 				w.WriteHeader(http.StatusNoContent)
 			}))
@@ -123,7 +123,7 @@ var _ = Describe("SPRM Client", func() {
 		})
 
 		It("handles 400 error response", func() {
-			server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 				w.Header().Set("Content-Type", "application/problem+json")
 				w.WriteHeader(http.StatusBadRequest)
 				_, _ = w.Write([]byte(`{"type": "validation-error", "title": "Invalid request"}`))
@@ -148,7 +148,7 @@ var _ = Describe("SPRM Client", func() {
 		})
 
 		It("handles 500 error response", func() {
-			server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 				w.Header().Set("Content-Type", "application/problem+json")
 				w.WriteHeader(http.StatusInternalServerError)
 				_, _ = w.Write([]byte(`{"type": "internal-error", "title": "Internal server error"}`))
@@ -173,7 +173,7 @@ var _ = Describe("SPRM Client", func() {
 		})
 
 		It("handles 409 conflict error response", func() {
-			server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 				w.Header().Set("Content-Type", "application/problem+json")
 				w.WriteHeader(http.StatusConflict)
 				_, _ = w.Write([]byte(`{"type": "conflict", "title": "Resource already exists"}`))
@@ -198,7 +198,7 @@ var _ = Describe("SPRM Client", func() {
 		})
 
 		It("handles 422 error response", func() {
-			server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 				w.Header().Set("Content-Type", "application/problem+json")
 				w.WriteHeader(http.StatusUnprocessableEntity)
 				_, _ = w.Write([]byte(`{"type": "provider-error", "title": "Provider validation failed"}`))
@@ -240,7 +240,7 @@ var _ = Describe("SPRM Client", func() {
 		})
 
 		It("handles 404 error response", func() {
-			server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 				w.Header().Set("Content-Type", "application/problem+json")
 				w.WriteHeader(http.StatusNotFound)
 				_, _ = w.Write([]byte(`{"type": "not-found", "title": "Resource not found"}`))
@@ -259,7 +259,7 @@ var _ = Describe("SPRM Client", func() {
 		})
 
 		It("handles 400 error response", func() {
-			server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 				w.Header().Set("Content-Type", "application/problem+json")
 				w.WriteHeader(http.StatusBadRequest)
 				_, _ = w.Write([]byte(`{"type": "invalid-request", "title": "Invalid ID format"}`))
@@ -278,7 +278,7 @@ var _ = Describe("SPRM Client", func() {
 		})
 
 		It("handles 500 error response", func() {
-			server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 				w.Header().Set("Content-Type", "application/problem+json")
 				w.WriteHeader(http.StatusInternalServerError)
 				_, _ = w.Write([]byte(`{"type": "internal-error", "title": "Internal server error"}`))

@@ -1,3 +1,4 @@
+// Package model defines the database models for resource storage.
 package model
 
 import (

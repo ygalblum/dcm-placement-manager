@@ -37,7 +37,7 @@ var _ = Describe("Policy Engine Client", func() {
 			},
 		}
 
-		server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(statusCode)
 			_ = json.NewEncoder(w).Encode(response)
@@ -142,7 +142,7 @@ var _ = Describe("Policy Engine Client", func() {
 			// Verify we can extract HTTPError using errors.As
 			var httpErr *policy.HTTPError
 			Expect(errors.As(err, &httpErr)).To(BeTrue(), "errors.As should be able to extract policy.HTTPError")
-			Expect(httpErr).NotTo(BeNil())
+			Expect(httpErr).To(HaveOccurred())
 			Expect(httpErr.StatusCode).To(Equal(406))
 			Expect(httpErr.Body).To(ContainSubstring("policy-rejected"))
 		})
@@ -179,7 +179,7 @@ var _ = Describe("Policy Engine Client", func() {
 		})
 
 		It("enforces configured HTTP timeout", func() {
-			slowServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			slowServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 				time.Sleep(50 * time.Millisecond)
 				w.WriteHeader(http.StatusOK)
 			}))

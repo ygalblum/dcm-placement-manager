@@ -1,3 +1,4 @@
+// Package policy provides a client for the policy evaluation service.
 package policy
 
 import (

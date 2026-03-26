@@ -1,3 +1,4 @@
+// Package handlers implements the HTTP request handlers for the placement API.
 package handlers
 
 import (
@@ -22,7 +23,7 @@ func NewHandler(placementService *service.PlacementService) *Handler {
 var _ server.StrictServerInterface = (*Handler)(nil)
 
 // GetHealth returns the health status of the service.
-func (h *Handler) GetHealth(ctx context.Context, request server.GetHealthRequestObject) (server.GetHealthResponseObject, error) {
+func (h *Handler) GetHealth(_ context.Context, _ server.GetHealthRequestObject) (server.GetHealthResponseObject, error) {
 	status := "ok"
 	path := "health"
 	return server.GetHealth200JSONResponse{Status: status, Path: &path}, nil

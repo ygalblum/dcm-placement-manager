@@ -1,3 +1,4 @@
+// Package httputil provides HTTP utility functions including retry logic.
 package httputil
 
 import (

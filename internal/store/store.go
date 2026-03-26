@@ -1,3 +1,4 @@
+// Package store provides data persistence operations for resources.
 package store
 
 import (

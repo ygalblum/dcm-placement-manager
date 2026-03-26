@@ -95,7 +95,7 @@ var _ = Describe("PlacementService", func() {
 
 	Describe("CreateResource", func() {
 		It("creates resource with APPROVED status from policy", func() {
-			mockPolicy.EvaluateFunc = func(ctx context.Context, req policy.EvaluateRequest) (*policy.EvaluateResponse, error) {
+			mockPolicy.EvaluateFunc = func(_ context.Context, req policy.EvaluateRequest) (*policy.EvaluateResponse, error) {
 				return &policy.EvaluateResponse{
 					Status:           "APPROVED",
 					SelectedProvider: "test-provider",
@@ -132,7 +132,7 @@ var _ = Describe("PlacementService", func() {
 		})
 
 		It("creates resource with MODIFIED status from policy", func() {
-			mockPolicy.EvaluateFunc = func(ctx context.Context, req policy.EvaluateRequest) (*policy.EvaluateResponse, error) {
+			mockPolicy.EvaluateFunc = func(_ context.Context, req policy.EvaluateRequest) (*policy.EvaluateResponse, error) {
 				modifiedSpec := make(map[string]any)
 				for k, v := range req.Spec {
 					modifiedSpec[k] = v
@@ -185,7 +185,7 @@ var _ = Describe("PlacementService", func() {
 		})
 
 		It("returns error when policy validation fails (400)", func() {
-			mockPolicy.EvaluateFunc = func(ctx context.Context, req policy.EvaluateRequest) (*policy.EvaluateResponse, error) {
+			mockPolicy.EvaluateFunc = func(_ context.Context, _ policy.EvaluateRequest) (*policy.EvaluateResponse, error) {
 				return nil, &policy.HTTPError{StatusCode: 400, Body: "bad request"}
 			}
 
@@ -205,7 +205,7 @@ var _ = Describe("PlacementService", func() {
 		})
 
 		It("returns error when policy rejects request (406)", func() {
-			mockPolicy.EvaluateFunc = func(ctx context.Context, req policy.EvaluateRequest) (*policy.EvaluateResponse, error) {
+			mockPolicy.EvaluateFunc = func(_ context.Context, _ policy.EvaluateRequest) (*policy.EvaluateResponse, error) {
 				return nil, &policy.HTTPError{StatusCode: 406, Body: "rejected"}
 			}
 
@@ -225,7 +225,7 @@ var _ = Describe("PlacementService", func() {
 		})
 
 		It("returns error when policy conflict occurs (409)", func() {
-			mockPolicy.EvaluateFunc = func(ctx context.Context, req policy.EvaluateRequest) (*policy.EvaluateResponse, error) {
+			mockPolicy.EvaluateFunc = func(_ context.Context, _ policy.EvaluateRequest) (*policy.EvaluateResponse, error) {
 				return nil, &policy.HTTPError{StatusCode: 409, Body: "conflict"}
 			}
 
@@ -245,7 +245,7 @@ var _ = Describe("PlacementService", func() {
 		})
 
 		It("returns error when policy engine fails (500)", func() {
-			mockPolicy.EvaluateFunc = func(ctx context.Context, req policy.EvaluateRequest) (*policy.EvaluateResponse, error) {
+			mockPolicy.EvaluateFunc = func(_ context.Context, _ policy.EvaluateRequest) (*policy.EvaluateResponse, error) {
 				return nil, &policy.HTTPError{StatusCode: 500, Body: "internal error"}
 			}
 
@@ -265,7 +265,7 @@ var _ = Describe("PlacementService", func() {
 		})
 
 		It("returns error when policy returns unmapped HTTP status code", func() {
-			mockPolicy.EvaluateFunc = func(ctx context.Context, req policy.EvaluateRequest) (*policy.EvaluateResponse, error) {
+			mockPolicy.EvaluateFunc = func(_ context.Context, _ policy.EvaluateRequest) (*policy.EvaluateResponse, error) {
 				return nil, &policy.HTTPError{StatusCode: 418, Body: "I'm a teapot"}
 			}
 
@@ -287,7 +287,7 @@ var _ = Describe("PlacementService", func() {
 		})
 
 		It("returns error when policy response is missing selected provider", func() {
-			mockPolicy.EvaluateFunc = func(ctx context.Context, req policy.EvaluateRequest) (*policy.EvaluateResponse, error) {
+			mockPolicy.EvaluateFunc = func(_ context.Context, req policy.EvaluateRequest) (*policy.EvaluateResponse, error) {
 				return &policy.EvaluateResponse{
 					Status:           "APPROVED",
 					SelectedProvider: "",
@@ -312,7 +312,7 @@ var _ = Describe("PlacementService", func() {
 		})
 
 		It("returns error when policy client communication fails", func() {
-			mockPolicy.EvaluateFunc = func(ctx context.Context, req policy.EvaluateRequest) (*policy.EvaluateResponse, error) {
+			mockPolicy.EvaluateFunc = func(_ context.Context, _ policy.EvaluateRequest) (*policy.EvaluateResponse, error) {
 				return nil, errors.New("connection refused")
 			}
 
@@ -357,7 +357,7 @@ var _ = Describe("PlacementService", func() {
 		})
 
 		It("returns error and rolls back DB when SPRM creation fails (400)", func() {
-			mockSPRM.CreateResourceFunc = func(ctx context.Context, req sprm.CreateResourceRequest) (*sprm.CreateResourceResponse, error) {
+			mockSPRM.CreateResourceFunc = func(_ context.Context, _ sprm.CreateResourceRequest) (*sprm.CreateResourceResponse, error) {
 				return nil, &sprm.HTTPError{StatusCode: 400, Body: "invalid request"}
 			}
 
@@ -382,7 +382,7 @@ var _ = Describe("PlacementService", func() {
 		})
 
 		It("returns error and rolls back DB when SPRM creation fails (500)", func() {
-			mockSPRM.CreateResourceFunc = func(ctx context.Context, req sprm.CreateResourceRequest) (*sprm.CreateResourceResponse, error) {
+			mockSPRM.CreateResourceFunc = func(_ context.Context, _ sprm.CreateResourceRequest) (*sprm.CreateResourceResponse, error) {
 				return nil, &sprm.HTTPError{StatusCode: 500, Body: "internal error"}
 			}
 
@@ -407,7 +407,7 @@ var _ = Describe("PlacementService", func() {
 		})
 
 		It("returns provider error when SPRM creation fails (422)", func() {
-			mockSPRM.CreateResourceFunc = func(ctx context.Context, req sprm.CreateResourceRequest) (*sprm.CreateResourceResponse, error) {
+			mockSPRM.CreateResourceFunc = func(_ context.Context, _ sprm.CreateResourceRequest) (*sprm.CreateResourceResponse, error) {
 				return nil, &sprm.HTTPError{StatusCode: 422, Body: "provider validation failed"}
 			}
 
@@ -472,7 +472,7 @@ var _ = Describe("PlacementService", func() {
 				if i%2 == 0 {
 					providerName = "provider-b"
 				}
-				mockPolicy.EvaluateFunc = func(ctx context.Context, req policy.EvaluateRequest) (*policy.EvaluateResponse, error) {
+				mockPolicy.EvaluateFunc = func(_ context.Context, req policy.EvaluateRequest) (*policy.EvaluateResponse, error) {
 					return &policy.EvaluateResponse{
 						Status:           "APPROVED",
 						SelectedProvider: providerName,
@@ -605,7 +605,7 @@ var _ = Describe("PlacementService", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			// Mock SPRM delete to fail with 404
-			mockSPRM.DeleteResourceFunc = func(ctx context.Context, catalogItemInstanceId string) error {
+			mockSPRM.DeleteResourceFunc = func(_ context.Context, _ string) error {
 				return &sprm.HTTPError{StatusCode: 404, Body: "not found in SPRM"}
 			}
 
@@ -634,7 +634,7 @@ var _ = Describe("PlacementService", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			// Mock SPRM delete to fail with 500
-			mockSPRM.DeleteResourceFunc = func(ctx context.Context, catalogItemInstanceId string) error {
+			mockSPRM.DeleteResourceFunc = func(_ context.Context, _ string) error {
 				return &sprm.HTTPError{StatusCode: 500, Body: "internal error"}
 			}
 

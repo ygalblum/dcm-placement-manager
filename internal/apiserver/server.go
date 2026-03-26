@@ -1,3 +1,4 @@
+// Package apiserver provides the HTTP server for the placement API.
 package apiserver
 
 import (

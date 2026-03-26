@@ -1,3 +1,4 @@
+// Package service implements the core business logic for resource placement.
 package service
 
 import (

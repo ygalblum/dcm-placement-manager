@@ -1,3 +1,4 @@
+// Package sprm provides a client for the Service Provider Resource Manager.
 package sprm
 
 import (
