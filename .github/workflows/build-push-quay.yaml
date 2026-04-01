@@ -2,7 +2,7 @@ name: Build and Push Image
 
 on:
   push:
-    branches: [main]
+    branches: [main, 'release/v*']
     tags: ['v*']
   workflow_dispatch:
     inputs:
@@ -15,7 +15,7 @@ jobs:
     uses: dcm-project/shared-workflows/.github/workflows/build-push-quay.yaml@main
     with:
       image-name: placement-manager
-      version: ${{ github.event.inputs.version }}
+      version: ${{ github.event.inputs.version || '' }}
     secrets:
       quay-username: ${{ secrets.QUAY_USERNAME }}
       quay-password: ${{ secrets.QUAY_TOKEN }}

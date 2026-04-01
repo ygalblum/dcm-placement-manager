@@ -286,7 +286,13 @@ GitHub Actions workflows:
 | `ci.yaml`              | All PRs to main      | Build and test                   |
 | `check-generate.yaml`  | API file changes     | Verify generated code is in sync |
 | `check-aep.yaml`       | OpenAPI spec changes | AEP standards compliance         |
-| `build-push-quay.yaml` | Releases             | Build and push container image   |
+| `build-push-quay.yaml` | main, v* tags | Build and push container image   |
+
+### Releasing
+
+Images are pushed to `quay.io/dcm-project/placement-manager`. 
+See [Releasing](https://github.com/dcm-project/shared-workflows#release-flow) 
+in shared-workflows for the full release process, tag behavior, and version conventions.
 
 ## License
 
